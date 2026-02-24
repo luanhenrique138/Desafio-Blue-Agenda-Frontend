@@ -23,7 +23,7 @@ export const ContactsService = {
     },
 
     async deleteContact(id: string): Promise<void> {
-        await http.delete<Contact>(`/api/Contacts/${id}`);
+        await http.delete(`/api/Contacts/${id}`);
     }
 
     

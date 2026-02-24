@@ -18,3 +18,7 @@ export type UpdateContactRequest = {
   email: string
   phone: string
 }
+
+export type ContactResponse = {
+    
+}
