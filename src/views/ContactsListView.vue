@@ -1,20 +1,32 @@
 <script setup lang="ts">
 import { onMounted, ref } from "vue";
 import { ContactsService } from "@/services/contacts.service";
-import type { Contact } from "@/types/contacts";
-
-
-
+import type { Contact, CreateContactRequest } from "@/types/contacts";
+import ContactsTable from "@/components/contacts/ContactsTable.vue"
+import ConfirmDeleteDialog from "@/components/contacts/ConfirmDeleteDialog.vue"
+import ContactFormDialog from "@/components/contacts/ContactFormDialog.vue"
 
 const contacts = ref<Contact[]>([])
 
 const deleteDialog = ref(false)
+const formDialog = ref(false)
+const formMode = ref<"create" | "edit">("create")
+const formInitialValues = ref<Contact | null>(null)
+
+const saving = ref(false)
+const formError = ref<string | null>(null)
+
 const error = ref<string | null>(null)
 const deleting = ref(false)
 const selectContact = ref<Contact | null>(null);
 
 async function loadContacts() {
-  contacts.value = await ContactsService.getAllContacts()
+  try {
+    error.value = null
+    contacts.value = await ContactsService.getAllContacts()
+  } catch (e) {
+    error.value = "Falha ao carregar contatos."
+  }
 }
 
 function openDeleteDialog(contact: Contact){
@@ -27,12 +39,10 @@ function closeDeleteDialog(){
     selectContact.value = null
 }
 
-
 async function onDelete(contact: Contact) {
     await ContactsService.deleteContact(contact.id)
     loadContacts()
 }
-
 
 async function confirmDelete() {
     if(!selectContact.value) return;
@@ -48,8 +58,40 @@ async function confirmDelete() {
     }
 }
 
-async function onEdit(contact: Contact) {
-    console.log("")
+function openCreateDialog() {
+  formMode.value = "create"
+  formInitialValues.value = null
+  formError.value = null
+  formDialog.value = true
+}
+
+function openEditDialog(contact: Contact) {
+  formMode.value = "edit"
+  formInitialValues.value = contact
+  formError.value = null
+  formDialog.value = true
+}
+
+async function handleSave(payload: CreateContactRequest) {
+  try {
+    saving.value = true
+    formError.value = null
+
+    if (formMode.value === "create") {
+      await ContactsService.createContact(payload) // precisa existir no service
+    } else {
+      // edit
+      if (!formInitialValues.value) return
+      await ContactsService.updateContact(formInitialValues.value.id, payload)
+    }
+
+    formDialog.value = false
+    await loadContacts()
+  } catch (e) {
+    formError.value = "Falha ao salvar contato."
+  } finally {
+    saving.value = false
+  }
 }
 
 onMounted(loadContacts)
@@ -57,6 +99,49 @@ onMounted(loadContacts)
 </script>
 
 <template>
+  <v-container>
+    <v-card>
+      <v-card-title class="d-flex align-center justify-space-between">
+            <v-card-title>Contatos</v-card-title>
+            <v-btn
+              color="primary"
+              prepend-icon="mdi-plus"
+              @click="openCreateDialog"
+            >
+              Adicionar
+            </v-btn>
+      </v-card-title>
+
+      <v-card-text>
+        <ContactsTable
+          :contacts="contacts"
+          @edit="openEditDialog"
+          @delete="openDeleteDialog"
+        />
+      </v-card-text>
+    </v-card>
+
+    <ConfirmDeleteDialog
+      v-model="deleteDialog"
+      :contact="selectContact"
+      :loading="deleting"
+      :error="error"
+      @confirm="confirmDelete"
+      @cancel="closeDeleteDialog"
+    />
+
+    <ContactFormDialog
+      v-model="formDialog"
+      :mode="formMode"
+      :initial-values="formInitialValues"
+      :loading="saving"
+      :error="formError"
+      @save="handleSave"
+    />
+  </v-container>
+</template>
+
+<!-- <template>
   <v-container>
     <v-card>
       <v-card-title>
@@ -140,6 +225,6 @@ onMounted(loadContacts)
     </v-dialog>
     
   </v-container>
-</template>
+</template> -->
 
 
