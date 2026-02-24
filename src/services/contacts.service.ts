@@ -1,7 +1,7 @@
 import type { Contact, CreateContactRequest, UpdateContactRequest } from '@/types/contacts';
 import { http } from './http';
 
-export const ContactService = {
+export const ContactsService = {
     async getAllContacts(): Promise<Contact[]> {
         const { data } = await http.get<Contact[]>('/api/Contacts')
         return data;
